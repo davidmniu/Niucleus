@@ -33,3 +33,6 @@
 
 # Swap Files
 *.swp
+
+# Visual Studio
+.vs/
