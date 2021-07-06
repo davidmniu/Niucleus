@@ -4,9 +4,11 @@
 #include <math.h>
 #include "parser.hpp"
 
+/*
 bool isNum(char a) {
 	if (a >= '0' && a <= '9') return true;
 }
+*/
 
 bool isOp(char a) {
 	std::unordered_set<char> ops = {'+', '-', '*', '/', '^'};
@@ -36,7 +38,7 @@ void print(std::vector<char> vec) {
 std::vector<char> stringToPostfix(std::string equation) {
 	std::vector<char> output;
 	std::vector<char> opStack;
-	char prev;
+	// char prev;
 	for (char token: equation) {
 		if (token != ' ') {
 			/*
@@ -114,6 +116,7 @@ double doOp(char op, double a, double b) {
 	else if (op == '*') return a * b;
 	else if (op == '/') return a / b;
 	else if (op == '^') return pow(a, b);
+	else return nan(""); 
 }
 
 double evalPostfix(std::vector<char> postVec, double x, double y, double z) {
