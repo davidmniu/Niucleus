@@ -1,6 +1,9 @@
 #include <string>
 #include <vector>
 
+// temp debug print function
+void print(std::vector<char> vec);
+
 // Function to turn equation given as string into 
 // a vector of strings representing postfix
 std::vector<char> stringToPostfix(std::string equation);

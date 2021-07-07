@@ -1,108 +1,97 @@
 #include <algorithm>
 #include <iostream>
 #include <unordered_set>
-#include <math.h>
+#include <cmath>
 #include "parser.hpp"
+#include "helper.hpp"
 
+// convert equation string to postfix vector of chars
+// using Dijkstra's shunting yard algorithm:
 /*
-bool isNum(char a) {
-	if (a >= '0' && a <= '9') return true;
-}
+	https://en.wikipedia.org/wiki/Shunting-yard_algorithm#The_algorithm_in_detail
 */
-
-bool isOp(char a) {
-	std::unordered_set<char> ops = {'+', '-', '*', '/', '^'};
-	std::unordered_set<char>::const_iterator got = ops.find(a);
-	return (got != ops.end());
-}
-
-int opPriority(char a) {
-	if (a == ')' || a == '(') return 4;
-	else if (a == '^') return 3;
-	else if (a == '*' || a == '/') return 2;
-	else if (a == '+' || a == '-') return 1;
-	else return 0;
-}
-
-std::vector<char> returnError(char a) {
-	return {'e', 'r', 'r', 'o', 'r', ' ', a};
-}
-
-void print(std::vector<char> vec) {
-	for (char i : vec) {
-		std::cout << i << ' ';
-	}
-	std::cout << '\n';
-}
-
 std::vector<char> stringToPostfix(std::string equation) {
 	std::vector<char> output;
 	std::vector<char> opStack;
-	// char prev;
-	for (char token: equation) {
-		if (token != ' ') {
-			/*
-			 * for debugging
-			std::cout << "output: ";
-			print(output);
-			std::cout << "opStack: ";
-			print(opStack);
-			*/
-			// if number, put into output queue
-			if ((token >= '0' && token <= '9') || (token == '.')) {
-				output.push_back(token);
-			// if function, push onto opStack 
-			} else if ((token >= 'A' && token <= 'Z') || (token >= 'a' && token <= 'z')) {
-				opStack.push_back(token);
-			// if operator, pop operators with lower precedence on opStack
-			// onto output, then put token onto output as well
-			} else if (isOp(token)) {
-				int j = opStack.size() - 1;
-				if (j >= 0) {
-					while (isOp(opStack[j]) &&
-						(opPriority(opStack[j]) >  opPriority(token) || 
-						 (opPriority(opStack[j]) == opPriority(token) && token != '^'))) {
-						output.push_back(opStack[j]);
-						opStack.pop_back();
-						j--;
-					}
-				}
-				opStack.push_back(token);
-			// if '(', push onto opStack
-			} else if (token == '(') {
-				opStack.push_back(token);
-			// if ')', go back down opStack until hit '('
-			} else if (token == ')') {
-				int j = opStack.size() - 1;
-				while (opStack[j] != '(') {
-					if (!opStack.empty()) {
-						output.push_back(opStack[j]);
-						opStack.pop_back();
-						j--;
-					} else {
-						return returnError('1');
-					} 
-				}
-				if (opStack[j] == '(') {
-					opStack.pop_back();
-					j--;
-				}
-				else {
-					return returnError('2');
-				} 
-				// take care of function
-				if ((opStack[j] >= 'A' && opStack[j] <= 'Z') || (opStack[j] >= 'a' && opStack[j] <= 'z')) {
-					output.push_back(opStack[j]);
-					opStack.pop_back();
-					j--;
+	for (std::vector<char>::size_type i = 0; i < equation.length(); i++) {
+		char token = equation[i];
+		/*
+		// * for debugging
+		std::cout << "output: ";
+		print(output);
+		std::cout << "opStack: ";
+		print(opStack);
+		*/
+		// if number, put into output queue
+		if (isDig(token)) {
+			// if (i == 0 || !isDig(equation[i-1])) output.push_back('[');
+			output.push_back(token);
+			// if (i == equation.length - 1 || !isDig(equation[i+1]) output.push_back(']');
+		// if variable or exponential, put into output queue
+		} else if (isVar(token) || token == 'e') {
+			if (i > 0) {
+				// check if it follows multiplier
+				if (followsMult(equation, i)) {
+					parseOp(opStack, output, '*');
 				}
 			}
+			output.push_back(token);
+		// if constant is pi, put into output queue 
+		} else if (token == 'p' && equation[i+1] == 'i') {
+			// again, if pi follows multiplier
+			if (followsMult(equation, i)) {
+				parseOp(opStack, output, '*');
+			}
+			output.push_back(token);
+			i++;
+		// if trig function (sin, cos, tan), push onto opStack
+		} else if ((token == 's' && equation[i+1] == 'i' && equation[i+2] == 'n') ||
+			(token == 'c' && equation[i+1] == 'o' && equation[i+2] == 's') ||
+			(token == 't' && equation[i+1] == 'a' && equation[i+2] == 'n')) {
+			// once more, if follows multiplier
+			if (!output.empty()) {
+				if (followsMult(equation, i)) {
+					parseOp(opStack, output, '*');
+				}
+			}
+			opStack.push_back(token);
+			i+=2;
+		// if operator, pop operators with lower precedence on opStack
+		// onto output, then put token onto output as well
+		} else if (isOp(token)) {
+			parseOp(opStack, output, token);
+		// if '(', push onto opStack
+		} else if (token == '(') {
+			opStack.push_back(token);
+		// if ')', go back down opStack until hit '('
+		} else if (token == ')') {
+			// pop out operators onto output queue
+			// until closing left parenthesis is found
+			while (opStack.back() != '(') {
+				if (!opStack.empty()) {
+					output.push_back(opStack.back());
+					opStack.pop_back();
+				// error if empty and left parenthesis not found
+				} else return returnError('1');
+			}
+			// check for matching left parenthesis
+			if (opStack.back() == '(') {
+				opStack.pop_back();
+			} else return returnError('2');
+			// take care of case of preceeding trig function
+			if (opStack.back() == 's' || opStack.back() == 'c' || opStack.back() == 't') {
+				output.push_back(opStack.back());
+				opStack.pop_back();
+			}
+			i++;
 		}
 	}
 	// now pop remaining elements from opStack onto output
 	for (int i = opStack.size() - 1; i >= 0; i--) {
+		// check that there are no parenthesis on opStack
 		if (opStack[i] != '(' && opStack[i] != ')') {
 			output.push_back(opStack[i]);
+		// if parenthesis are still left, we have a problem
 		} else {
 			return returnError('3');
 		} 
@@ -110,28 +99,35 @@ std::vector<char> stringToPostfix(std::string equation) {
 	return output;
 }
 
-double doOp(char op, double a, double b) {
-	if (op == '+') return a + b;
-	else if (op == '-') return a - b;
-	else if (op == '*') return a * b;
-	else if (op == '/') return a / b;
-	else if (op == '^') return pow(a, b);
-	else return nan(""); 
-}
-
+// evaluate postfix char vector and return double
 double evalPostfix(std::vector<char> postVec, double x, double y, double z) {
 	std::vector<double> valStack = {};
+	// iterate through vector containg postfix
 	for (char token : postVec) {
+		// if digit, const, or variable, push onto valStack
 		if (token >= '0' && token <= '9') {
 			valStack.push_back(token - 48);
-		} else {
-			int len = valStack.size();
-			double a = valStack[len-2];
-			double b = valStack[len-1];
+		} else if (token == 'e') valStack.push_back(std::exp(1.0));
+		else if (token == 'p') valStack.push_back(M_PI);
+		else if (token == 'x') valStack.push_back(x);
+		else if (token == 'y') valStack.push_back(y);
+		else if (token == 'z') valStack.push_back(z);
+		// if operator, pop last two values off valStack 
+		// and evalute, then put result back onto valStack
+		else if (isOp(token)) {
+			double b = valStack.back();
 			valStack.pop_back();
+			double a = valStack.back();
 			valStack.pop_back();
 			valStack.push_back(doOp(token, a, b));			
-		}
+		// if function, pop last value off valStack 
+		// and evalute, then put result back onto valStack
+		} else if (token == 's' || token == 'c' || token == 't') {
+			double a = valStack.back();
+			valStack.pop_back();
+			valStack.push_back(doTrig(a, token));
+		// invalid input, return NaN
+		} else return nan("");
 	}
 	return valStack[0];
 }
