@@ -1,5 +1,5 @@
 #include <iostream>
-#include "parser.hpp"
+#include "../src/niutron.hpp"
 #include <cmath>
 
 int main() {

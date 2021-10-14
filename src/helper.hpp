@@ -1,3 +1,6 @@
+#ifndef HELPER_H
+#define HELPER_H
+
 #include <string>
 #include <vector>
 
@@ -38,3 +41,5 @@ double doOp(char op, double a, double b);
 
 // apply trig function to double a
 double doTrig(double a, char token);
+
+#endif

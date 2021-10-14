@@ -2,19 +2,38 @@
 #include <iostream>
 #include <unordered_set>
 #include <cmath>
-#include "parser.hpp"
+#include "niutron.hpp"
 #include "helper.hpp"
 
-// convert equation string to postfix vector of chars
+// convert expression string to postfix vector of chars
 // using Dijkstra's shunting yard algorithm:
 /*
 	https://en.wikipedia.org/wiki/Shunting-yard_algorithm#The_algorithm_in_detail
 */
-std::vector<char> stringToPostfix(std::string equation) {
+
+Niutron::Niutron() {
+	postVec = {0};
+}
+
+Niutron::Niutron(std::string expression) {
+	// TODO: Validate expression
+	postVec = stringToPostfix(expression);
+}
+
+void Niutron::setExpression(std::string expression) {
+	// TODO: Validate expression
+	postVec = stringToPostfix(expression);
+}
+
+std::vector<char> Niutron::getExpression() {
+	return postVec;
+}
+
+std::vector<char> Niutron::stringToPostfix(std::string expression) {
 	std::vector<char> output;
 	std::vector<char> opStack;
-	for (std::vector<char>::size_type i = 0; i < equation.length(); i++) {
-		char token = equation[i];
+	for (std::vector<char>::size_type i = 0; i < expression.length(); i++) {
+		char token = expression[i];
 		/*
 		// * for debugging
 		std::cout << "output: ";
@@ -24,33 +43,33 @@ std::vector<char> stringToPostfix(std::string equation) {
 		*/
 		// if number, put into output queue
 		if (isDig(token)) {
-			// if (i == 0 || !isDig(equation[i-1])) output.push_back('[');
+			// if (i == 0 || !isDig(expression[i-1])) output.push_back('[');
 			output.push_back(token);
-			// if (i == equation.length - 1 || !isDig(equation[i+1]) output.push_back(']');
+			// if (i == expression.length - 1 || !isDig(expression[i+1]) output.push_back(']');
 		// if variable or exponential, put into output queue
 		} else if (isVar(token) || token == 'e') {
 			if (i > 0) {
 				// check if it follows multiplier
-				if (followsMult(equation, i)) {
+				if (followsMult(expression, i)) {
 					parseOp(opStack, output, '*');
 				}
 			}
 			output.push_back(token);
 		// if constant is pi, put into output queue 
-		} else if (token == 'p' && equation[i+1] == 'i') {
+		} else if (token == 'p' && expression[i+1] == 'i') {
 			// again, if pi follows multiplier
-			if (followsMult(equation, i)) {
+			if (followsMult(expression, i)) {
 				parseOp(opStack, output, '*');
 			}
 			output.push_back(token);
 			i++;
 		// if trig function (sin, cos, tan), push onto opStack
-		} else if ((token == 's' && equation[i+1] == 'i' && equation[i+2] == 'n') ||
-			(token == 'c' && equation[i+1] == 'o' && equation[i+2] == 's') ||
-			(token == 't' && equation[i+1] == 'a' && equation[i+2] == 'n')) {
+		} else if ((token == 's' && expression[i+1] == 'i' && expression[i+2] == 'n') ||
+			(token == 'c' && expression[i+1] == 'o' && expression[i+2] == 's') ||
+			(token == 't' && expression[i+1] == 'a' && expression[i+2] == 'n')) {
 			// once more, if follows multiplier
 			if (!output.empty()) {
-				if (followsMult(equation, i)) {
+				if (followsMult(expression, i)) {
 					parseOp(opStack, output, '*');
 				}
 			}
@@ -100,7 +119,7 @@ std::vector<char> stringToPostfix(std::string equation) {
 }
 
 // evaluate postfix char vector and return double
-double evalPostfix(std::vector<char> postVec, double x, double y, double z) {
+double Niutron::evaluate(double x, double y, double z) {
 	std::vector<double> valStack = {};
 	// iterate through vector containg postfix
 	for (char token : postVec) {
