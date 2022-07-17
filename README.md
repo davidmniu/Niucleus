@@ -8,7 +8,7 @@
 Eqparser is a simple equation parser in C++. It is intended for use in the numerical methods library [Niumerics](https://github.com/davidmniu/Niumerics), but may also be used separately. It implements a version of Dijkstra's [shunting-yard algorithm](https://en.wikipedia.org/wiki/Shunting-yard_algorithm) that has been modified to allow for variables (x, y, z), mathematical constants (e, pi), and trigonometric functions.
 
 ## Usage
-As is made clear in the header file, Niucleus has two functions for the user to interact with; namely,
+As is made clear in the header file, Eqparser has two functions for the user to interact with; namely,
 
 ```
 std::vector<char> stringToPostfix(std::string equation);
